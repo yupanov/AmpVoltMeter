@@ -5,29 +5,37 @@
 #include <GyverNTC.h>
 
 LiquidCrystal_I2C lcd(0x27, 20, 4); // SDA -> A4   SCL -> A5
-GyverNTC roomTherm(A2, 10000, 3950, 25, 9790);  // pin, R thermostor, B thermistor, base temp, R resistor
-GyverNTC evapTherm(A3, 10000, 3950, 25, 9830);  // GND --- thermistor --- An --- 10к --- 5V
+GyverNTC roomTherm(A6, 10000, 3950, 25, 9790);  // pin, R thermostor, B thermistor, base temp, R resistor
+GyverNTC evapTherm(A7, 10000, 3950, 25, 9830);  // GND --- thermistor --- An --- 10к --- 5V
 
 // constants:
+// Volts:
 const float divResOne = 219.0; // kOhm
 const float divResTwo = 32.0; // kOhm
 const float multRatio = (divResOne + divResTwo) / divResTwo;
 const float vRef = 5.0;
 const float multVolt = multRatio * vRef / 1024.0;
-const uint8_t mVoltPerAmp = 185; // 5A -> 185, 20A -> 100, 30A -> 185 mV per A
+// Amps:
+const uint8_t mVoltPerAmpLoad = 185; // 5A -> 185, 20A -> 100, 30A -> 185 mV per A
+const uint8_t mVoltPerAmpCharge = 66;
 const float mVoltPerStep = vRef * 1000.0 / 1024.0;
-const float multCurrent = mVoltPerStep / mVoltPerAmp;
+const float multCurrentLoad = mVoltPerStep / mVoltPerAmpLoad;
+const float multCurrentCharge = mVoltPerStep / mVoltPerAmpCharge;
+// Thermostate:
 const float compStopTemp = -5.0;
 const float compStartTemp = 6.0;
 
 File file;
+const String fileName = "SolarStats.txt";
 
 // pins:
-const uint8_t currentPin = A0;
-const uint8_t voltagePin = A1;
+const uint8_t currentLoadPin = A0;
+const uint8_t currentChargePin = A1;
+const uint8_t voltagePin = A2;
 const uint8_t relayPin = 6;
 
-float current = 0.0;
+float currentLoad = 0.0;
+float currentCharge - 0.0;
 float voltage = 0.0;
 float roomTemp = 0.0;
 float evapTemp = 0.0;
@@ -36,29 +44,16 @@ bool lowBatt = false;
 bool isFridgeOn = false;
 
 void setup() {
-  pinMode(currentPin, INPUT);
+  pinMode(currentLoadPin, INPUT);
+  pinMode(currentChargePin, INPUT);
   pinMode(voltagePin, INPUT);
   pinMode(relayPin, OUTPUT);
 
   Serial.begin(9600);
-  while (!Serial);
-
-  Serial.print("Initializing SD card...");
-  if (!SD.begin(10)) Serial.println("initialization failed!");
-  else Serial.println("initialization done.");
-  file = SD.open("01.txt", FILE_WRITE);
-    if (file) {
-      file.print("counter"); file.print(",");
-      file.print("current"); file.print(",");
-      file.print("voltage"); file.print(",");
-      file.print("roomTemp"); file.print(",");
-      file.print("evapTemp");  file.print(",");
-      file.println("isFridgeOn"); 
-      file.close();
-      Serial.println("done printing headers to file.");
-    } else {
-      Serial.println("error opening file");
-    }
+  // while (!Serial);
+  
+  printHeaders();
+  
   lcd.init();
   lcd.backlight();
 }
@@ -77,9 +72,30 @@ void loop() {
   }
 }
 
+void printHeaders() {
+  Serial.print("Initializing SD card...");
+  if (!SD.begin(10)) Serial.println("initialization failed!");
+    else Serial.println("initialization done.");
+    file = SD.open(fileName, FILE_WRITE);
+      if (file) {
+        file.print("currentLoad"); file.print(",");
+        file.print("currentCharge"); file.print(",");
+        file.print("voltage"); file.print(",");
+        file.print("roomTemp"); file.print(",");
+        file.print("evapTemp");  file.print(",");
+        file.println("isFridgeOn"); 
+        file.close();
+        Serial.println("done printing headers to file.");
+      } else {
+        Serial.println("error opening file");
+      }
+}
+
 void getMeasures() {
-  current = (average(currentPin) - 512) * multCurrent; // Amps
-    if (current < 0.0 || current > 30.0) current = 0.0;
+  currentLoad = (average(currentLoadPin) - 512) * multCurrentLoad; // Amps
+    if (currentLoad < 0.0 || currentLoad > 30.0) currentLoad = 0.0;
+    currentCharge = (average(currentChargePin) - 512) * multCurrentLoad; // Amps
+    if (currentCharge < 0.0 || currentCharge > 30.0) currentCharge = 0.0;
     voltage = average(voltagePin) * multVolt; // Volts
     lowBatt = voltage < 11.0;
     roomTemp = roomTherm.getTempAverage();
@@ -96,16 +112,14 @@ void fridgeRelay() {
 
 void printToSdFile() {
   static uint32_t timer = millis();  
-  static uint16_t counter = 0;
     
   if(millis() - timer >= 60000) { // once per minute
     timer = millis();
-    counter++;
 
-    file = SD.open("01.txt", FILE_WRITE);
+    file = SD.open(fileName, FILE_WRITE);
     if (file) {
-      file.print(counter); file.print(",");
-      file.print(current, 2); file.print(",");
+      file.print(currentLoad); file.print(",");
+      file.print(currentCharge, 2); file.print(",");
       file.print(voltage, 2); file.print(",");
       file.print(roomTemp, 2); file.print(",");
       file.print(evapTemp, 2);  file.print(",");
@@ -120,7 +134,8 @@ void printToSdFile() {
 }
 
 void serialPrintAll() {
-  Serial.print("Current = "); Serial.print(current, 2); Serial.println(" A   ");
+  Serial.print("CurrentLoad = "); Serial.print(currentLoad, 2); Serial.println(" A   ");
+  Serial.print("CurrentCharge = "); Serial.print(currentCharge, 2); Serial.println(" A   ");
   Serial.print("Voltage = "); Serial.print(voltage, 2); Serial.println(" V   ");
   Serial.print("Room temperature = "); Serial.print(roomTemp, 2); Serial.println(" *C   ");
   Serial.print("Evaporator temperature = "); Serial.print(evapTemp, 2); Serial.println(" *C   ");
@@ -130,11 +145,20 @@ void serialPrintAll() {
 
 void lcdPrintAll() {
   lcd.setCursor(0, 0);
-  lcd.print("Current: ");  
+  lcd.print("Ld: ");  
+  lcd.setCursor(4, 0);
+  lcd.print("     "); // clear previous
+  lcd.setCursor(4, 0);
+  lcd.print(currentLoad, 1);
+  lcd.setCursor(8, 0);
+  lcd.print("A");
+
   lcd.setCursor(11, 0);
-  lcd.print("         "); // clear previous
-  lcd.setCursor(11, 0);
-  lcd.print(current, 2);
+  lcd.print("Cg: ");  
+  lcd.setCursor(15, 0);
+  lcd.print("     "); // clear previous
+  lcd.setCursor(15, 0);
+  lcd.print(currentCharge, 1);
   lcd.setCursor(19, 0);
   lcd.print("A");
 
