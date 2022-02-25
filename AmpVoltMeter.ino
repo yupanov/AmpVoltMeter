@@ -22,7 +22,7 @@ const float mVoltPerStep = vRef * 1000.0 / 1024.0;
 const float multCurrentLoad = mVoltPerStep / mVoltPerAmpLoad;
 const float multCurrentCharge = mVoltPerStep / mVoltPerAmpCharge;
 // Thermostate:
-const float compStopTemp = -5.0;
+const float compStopTemp = -7.0;
 const float compStartTemp = 6.0;
 
 File file;
@@ -35,7 +35,7 @@ const uint8_t voltagePin = A2;
 const uint8_t relayPin = 6;
 
 float currentLoad = 0.0;
-float currentCharge - 0.0;
+float currentCharge = 0.0;
 float voltage = 0.0;
 float roomTemp = 0.0;
 float evapTemp = 0.0;
@@ -76,7 +76,7 @@ void printHeaders() {
   Serial.print("Initializing SD card...");
   if (!SD.begin(10)) Serial.println("initialization failed!");
     else Serial.println("initialization done.");
-    file = SD.open(fileName, FILE_WRITE);
+    file = SD.open("SolarStats.txt", FILE_WRITE);
       if (file) {
         file.print("currentLoad"); file.print(",");
         file.print("currentCharge"); file.print(",");
@@ -116,7 +116,7 @@ void printToSdFile() {
   if(millis() - timer >= 60000) { // once per minute
     timer = millis();
 
-    file = SD.open(fileName, FILE_WRITE);
+    file = SD.open("SolarStats.txt", FILE_WRITE);
     if (file) {
       file.print(currentLoad); file.print(",");
       file.print(currentCharge, 2); file.print(",");
@@ -147,7 +147,7 @@ void lcdPrintAll() {
   lcd.setCursor(0, 0);
   lcd.print("Ld: ");  
   lcd.setCursor(4, 0);
-  lcd.print("     "); // clear previous
+  lcd.print("    "); // clear previous
   lcd.setCursor(4, 0);
   lcd.print(currentLoad, 1);
   lcd.setCursor(8, 0);
@@ -156,7 +156,7 @@ void lcdPrintAll() {
   lcd.setCursor(11, 0);
   lcd.print("Cg: ");  
   lcd.setCursor(15, 0);
-  lcd.print("     "); // clear previous
+  lcd.print("    "); // clear previous
   lcd.setCursor(15, 0);
   lcd.print(currentCharge, 1);
   lcd.setCursor(19, 0);
