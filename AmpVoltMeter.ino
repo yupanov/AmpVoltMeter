@@ -46,7 +46,7 @@ void setup() {
   Serial.print("Initializing SD card...");
   if (!SD.begin(10)) Serial.println("initialization failed!");
   else Serial.println("initialization done.");
-  file = SD.open("voltamp.txt", FILE_WRITE);
+  file = SD.open("01.txt", FILE_WRITE);
     if (file) {
       file.print("counter"); file.print(",");
       file.print("current"); file.print(",");
@@ -57,7 +57,7 @@ void setup() {
       file.close();
       Serial.println("done printing headers to file.");
     } else {
-      Serial.println("error opening voltamp.txt");
+      Serial.println("error opening file");
     }
   lcd.init();
   lcd.backlight();
@@ -102,7 +102,7 @@ void printToSdFile() {
     timer = millis();
     counter++;
 
-    file = SD.open("solarFridgeStats.txt", FILE_WRITE);
+    file = SD.open("01.txt", FILE_WRITE);
     if (file) {
       file.print(counter); file.print(",");
       file.print(current, 2); file.print(",");
@@ -114,7 +114,7 @@ void printToSdFile() {
       file.close();
       Serial.println("done printing to file.");
     } else {
-      Serial.println("error opening voltamp.txt");
+      Serial.println("error opening file");
     }
   }  
 }
