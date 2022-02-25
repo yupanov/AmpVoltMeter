@@ -14,7 +14,7 @@ const float divResTwo = 32.0; // kOhm
 const float multRatio = (divResOne + divResTwo) / divResTwo;
 const float vRef = 5.0;
 const float multVolt = multRatio * vRef / 1024.0;
-const uint8_t mVoltPerAmp = 66;
+const uint8_t mVoltPerAmp = 185; // 5A -> 185, 20A -> 100, 30A -> 185 mV per A
 const float mVoltPerStep = vRef * 1000.0 / 1024.0;
 const float multCurrent = mVoltPerStep / mVoltPerAmp;
 const float compStopTemp = -5.0;
@@ -79,7 +79,7 @@ void loop() {
 
 void getMeasures() {
   current = (average(currentPin) - 512) * multCurrent; // Amps
-    if (current < 0.0) current = 0.0;
+    if (current < 0.0 || current > 30.0) current = 0.0;
     voltage = average(voltagePin) * multVolt; // Volts
     lowBatt = voltage < 11.0;
     roomTemp = roomTherm.getTempAverage();
