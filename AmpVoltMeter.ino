@@ -9,11 +9,14 @@ GyverNTC roomTherm(A2, 10000, 3950, 25, 9790);  // pin, R thermostor, B thermist
 GyverNTC evapTherm(A3, 10000, 3950, 25, 9830);  // GND --- thermistor --- An --- 10к --- 5V
 
 // constants:
-const uint8_t mAmpStep = 66;
 const float divResOne = 219.0; // kOhm
 const float divResTwo = 32.0; // kOhm
-const float divRatio =  divResTwo / (divResOne + divResTwo);
+const float multRatio = (divResOne + divResTwo) / divResTwo;
 const float vRef = 5.0;
+const float multVolt = multRatio * vRef / 1024.0;
+const uint8_t mVoltPerAmp = 66;
+const float mVoltPerStep = vRef * 1000.0 / 1024.0;
+const float multCurrent = mVoltPerStep / mVoltPerAmp;
 const float compStopTemp = -5.0;
 const float compStartTemp = 6.0;
 
@@ -75,9 +78,9 @@ void loop() {
 }
 
 void getMeasures() {
-  current = (average(currentPin) - 511) * 0.001 * mAmpStep; // Amps
+  current = (average(currentPin) - 512) * multCurrent; // Amps
     if (current < 0.0) current = 0.0;
-    voltage = average(voltagePin) / divRatio * vRef / 1024.0; // Volts
+    voltage = average(voltagePin) * multVolt; // Volts
     lowBatt = voltage < 11.0;
     roomTemp = roomTherm.getTempAverage();
     evapTemp = evapTherm.getTempAverage();
