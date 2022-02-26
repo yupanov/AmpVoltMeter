@@ -10,14 +10,14 @@ GyverNTC evapTherm(A7, 10000, 3950, 25, 9830);  // GND --- thermistor --- An ---
 
 // constants:
 // Volts:
-const float divResOne = 219.0; // kOhm
-const float divResTwo = 32.0; // kOhm
+#define divResOne 219.0 // kOhm
+#define divResTwo 32.0  // kOhm
+#define vRef 5.0
 const float multRatio = (divResOne + divResTwo) / divResTwo;
-const float vRef = 5.0;
 const float multVolt = multRatio * vRef / 1024.0;
 // Amps:
-const uint8_t mVoltPerAmpLoad = 185; // 5A -> 185, 20A -> 100, 30A -> 185 mV per A
-const uint8_t mVoltPerAmpCharge = 66;
+#define mVoltPerAmpLoad 185 // 5A -> 185, 20A -> 100, 30A -> 185 mV per A
+#define mVoltPerAmpCharge 66
 const float mVoltPerStep = vRef * 1000.0 / 1024.0;
 const float multCurrentLoad = mVoltPerStep / mVoltPerAmpLoad;
 const float multCurrentCharge = mVoltPerStep / mVoltPerAmpCharge;
@@ -26,7 +26,7 @@ const float compStopTemp = -7.0;
 const float compStartTemp = 6.0;
 
 File file;
-const String fileName = "SolarStats.txt";
+const char fileName[] = "SolarStats.csv";
 
 // pins:
 const uint8_t currentLoadPin = A0;
@@ -42,6 +42,7 @@ float evapTemp = 0.0;
 
 bool lowBatt = false;
 bool isFridgeOn = false;
+bool sdOk = false;
 
 void setup() {
   pinMode(currentLoadPin, INPUT);
@@ -73,21 +74,23 @@ void loop() {
 }
 
 void printHeaders() {
-  Serial.print("Initializing SD card...");
-  if (!SD.begin(10)) Serial.println("initialization failed!");
-    else Serial.println("initialization done.");
-    file = SD.open("SolarStats.txt", FILE_WRITE);
+  Serial.print(F("Initializing SD card..."));
+  if (!SD.begin(10)) Serial.println(F("initialization failed!"));
+    else Serial.println(F("initialization done."));
+    file = SD.open(fileName, FILE_WRITE);
       if (file) {
-        file.print("currentLoad"); file.print(",");
-        file.print("currentCharge"); file.print(",");
-        file.print("voltage"); file.print(",");
-        file.print("roomTemp"); file.print(",");
-        file.print("evapTemp");  file.print(",");
-        file.println("isFridgeOn"); 
+        sdOk = true;
+        file.print(F("currentLoad")); file.print(F(","));
+        file.print(F("currentCharge")); file.print(F(","));
+        file.print(F("voltage")); file.print(F(","));
+        file.print(F("roomTemp")); file.print(F(","));
+        file.print(F("evapTemp"));  file.print(F(","));
+        file.println(F("isFridgeOn")); 
         file.close();
-        Serial.println("done printing headers to file.");
+        Serial.println(F("done printing headers to file."));
       } else {
-        Serial.println("error opening file");
+        sdOk = false;
+        Serial.println(F("error opening file"));
       }
 }
 
@@ -116,78 +119,94 @@ void printToSdFile() {
   if(millis() - timer >= 60000) { // once per minute
     timer = millis();
 
-    file = SD.open("SolarStats.txt", FILE_WRITE);
+    file = SD.open(fileName, FILE_WRITE);
     if (file) {
-      file.print(currentLoad); file.print(",");
-      file.print(currentCharge, 2); file.print(",");
-      file.print(voltage, 2); file.print(",");
-      file.print(roomTemp, 2); file.print(",");
-      file.print(evapTemp, 2);  file.print(",");
+      sdOk = true;
+      file.print(currentLoad); file.print(F(","));
+      file.print(currentCharge, 2); file.print(F(","));
+      file.print(voltage, 2); file.print(F(","));
+      file.print(roomTemp, 2); file.print(F(","));
+      file.print(evapTemp, 2);  file.print(F(","));
       file.println(isFridgeOn ? 1 : 0); 
 
       file.close();
-      Serial.println("done printing to file.");
+      Serial.println(F("done printing to file."));
     } else {
-      Serial.println("error opening file");
+      sdOk = false;
+      Serial.println(F("error opening file"));
     }
   }  
 }
 
 void serialPrintAll() {
-  Serial.print("CurrentLoad = "); Serial.print(currentLoad, 2); Serial.println(" A   ");
-  Serial.print("CurrentCharge = "); Serial.print(currentCharge, 2); Serial.println(" A   ");
-  Serial.print("Voltage = "); Serial.print(voltage, 2); Serial.println(" V   ");
-  Serial.print("Room temperature = "); Serial.print(roomTemp, 2); Serial.println(" *C   ");
-  Serial.print("Evaporator temperature = "); Serial.print(evapTemp, 2); Serial.println(" *C   ");
-  Serial.println(isFridgeOn ? "Fridge on" : "Fridge off");
+  Serial.print(F("CurrentLoad = ")); Serial.print(currentLoad, 2); Serial.println(F(" A   "));
+  Serial.print(F("CurrentCharge = ")); Serial.print(currentCharge, 2); Serial.println(F(" A   "));
+  Serial.print(F("Voltage = ")); Serial.print(voltage, 2); Serial.println(F(" V   "));
+  Serial.print(F("Room temperature = ")); Serial.print(roomTemp, 2); Serial.println(F(" *C   "));
+  Serial.print(F("Evaporator temperature = ")); Serial.print(evapTemp, 2); Serial.println(F(" *C   "));
+  Serial.println(isFridgeOn ? F("Fridge on") : F("Fridge off"));
   Serial.println();
 }
 
 void lcdPrintAll() {
   lcd.setCursor(0, 0);
-  lcd.print("Ld: ");  
+  lcd.print(F("Ld:"));  
   lcd.setCursor(4, 0);
-  lcd.print("    "); // clear previous
+  lcd.print(F("    ")); // clear previous
   lcd.setCursor(4, 0);
   lcd.print(currentLoad, 1);
   lcd.setCursor(8, 0);
-  lcd.print("A");
+  lcd.print(F("A"));
 
   lcd.setCursor(11, 0);
-  lcd.print("Cg: ");  
+  lcd.print(F("Cg:"));  
   lcd.setCursor(15, 0);
-  lcd.print("    "); // clear previous
+  lcd.print(F("    ")); // clear previous
   lcd.setCursor(15, 0);
   lcd.print(currentCharge, 1);
   lcd.setCursor(19, 0);
-  lcd.print("A");
+  lcd.print(F("A"));
 
   lcd.setCursor(0, 1);
-  lcd.print("Voltage: ");
+  lcd.print(F("Voltage: "));
   lcd.setCursor(11, 1);
-  lcd.print("         "); // clear previous
+  lcd.print(F("         ")); // clear previous
   lcd.setCursor(11, 1);
   lcd.print(voltage, 2);
   lcd.setCursor(19, 1);
-  lcd.print("V");
+  lcd.print(F("V"));
 
   lcd.setCursor(0, 2);
-  lcd.print("Room temp: ");
+  lcd.print(F("Rm:"));
+  lcd.setCursor(4, 2);
+  lcd.print(F("    ")); // clear previous
+  lcd.setCursor(4, 2);
+  lcd.print(roomTemp, 1);
+  lcd.setCursor(8, 2);
+  lcd.print(F("C"));
+
   lcd.setCursor(11, 2);
-  lcd.print("         "); // clear previous
-  lcd.setCursor(11, 2);
-  lcd.print(roomTemp, 2);
+  lcd.print(F("Ev:"));
+  lcd.setCursor(15, 2);
+  lcd.print(F("    ")); // clear previous
+  lcd.setCursor(15, 2);
+  lcd.print(evapTemp, 1);
   lcd.setCursor(19, 2);
-  lcd.print("C");
+  lcd.print(F("C"));
 
   lcd.setCursor(0, 3);
-  lcd.print("Evap temp: ");
+  lcd.print(F("SD:"));
+  lcd.setCursor(4, 3);
+  lcd.print(F("    ")); // clear previous
+  lcd.setCursor(4, 3);
+  lcd.print(sdOk ? F("Ok") : F("Fail"));
+  
   lcd.setCursor(11, 3);
-  lcd.print("         "); // clear previous
-  lcd.setCursor(11, 3);
-  lcd.print(evapTemp, 2);
-  lcd.setCursor(19, 3);
-  lcd.print("C");
+  lcd.print(F("Comp:"));  
+  lcd.setCursor(17, 3);
+  lcd.print(F("   ")); // clear previous
+  lcd.setCursor(17, 3);
+  lcd.print(isFridgeOn ? F("On") : F("Off"));
 }
 
 uint16_t average(uint8_t pin) {
