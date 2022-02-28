@@ -22,7 +22,7 @@ const float mVoltPerStep = vRef * 1000.0 / 1024.0;
 const float multCurrentLoad = mVoltPerStep / mVoltPerAmpLoad;
 const float multCurrentCharge = mVoltPerStep / mVoltPerAmpCharge;
 // Thermostate:
-const float compStopTemp = -7.0;
+const float compStopTemp = -6.0;
 const float compStartTemp = 6.0;
 
 File file;
@@ -118,7 +118,7 @@ void getMeasures()
   currentLoad = (average(currentLoadPin) - 512) * multCurrentLoad; // Amps
   if (currentLoad < 0.0 || currentLoad > 30.0)
     currentLoad = 0.0;
-  currentCharge = (average(currentChargePin) - 512) * multCurrentLoad; // Amps
+  currentCharge = (average(currentChargePin) - 512) * multCurrentCharge; // Amps
   if (currentCharge < 0.0 || currentCharge > 30.0)
     currentCharge = 0.0;
   voltage = average(voltagePin) * multVolt; // Volts
