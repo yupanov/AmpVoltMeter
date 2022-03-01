@@ -1,3 +1,5 @@
+// Home solar station controller with DC fridge as a load (arduino).
+
 #include <Wire.h>
 #include <SPI.h>
 #include <SD.h>
