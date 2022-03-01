@@ -22,7 +22,7 @@ const float mVoltPerStep = vRef * 1000.0 / 1024.0;
 const float multCurrentLoad = mVoltPerStep / mVoltPerAmpLoad;
 const float multCurrentCharge = mVoltPerStep / mVoltPerAmpCharge;
 // Thermostate:
-const float compStopTemp = -6.0;
+const float compStopTemp = -16.0;
 const float compStartTemp = 6.0;
 
 File file;
@@ -222,7 +222,7 @@ void lcdPrintAll()
   lcd.setCursor(11, 1);
   lcd.print(F("         ")); // clear previous
   lcd.setCursor(11, 1);
-  lcd.print(voltage, 2);
+  lcd.print(voltage, 1);
   lcd.setCursor(19, 1);
   lcd.print(F("V"));
 
@@ -239,7 +239,10 @@ void lcdPrintAll()
   lcd.print(F("Ev:"));
   lcd.setCursor(15, 2);
   lcd.print(F("    ")); // clear previous
-  lcd.setCursor(15, 2);
+  if (evapTemp < 0.0)
+    lcd.setCursor(14, 2);
+  else
+    lcd.setCursor(15, 2);
   lcd.print(evapTemp, 1);
   lcd.setCursor(19, 2);
   lcd.print(F("C"));
